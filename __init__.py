@@ -52,15 +52,22 @@ class YeelightSkill(MycroftSkill):
         LOGGER.debug("Yeelight: starting on activity")
         LOGGER.debug("Yeelight: start activity" + message.data.get('utterance'))
 
-        (ip, port) = get_ip_port()
-
-        # success = set_power("on", ip, port)
-        command = '{"id":1,"method":"set_power", "params":["on", "smooth", 500]}'
-        success = sendto(ip, port, command)
-        LOGGER.debug('Power set is' + success[0])
-
-        report = {"location": "bedroom"}
-        self.speak_dialog("on.activity", report)
+        lights = get_lights()
+        if len(lights) >= 1:
+            LOGGER.info('Turning first light on')
+            response = lights[0]
+            (ip, port) = get_ip_port(response)
+            name = get_name(response)
+            model = get_model(response)
+            LOGGER.info('Name is ' + name + ' model ' + model)
+            
+            # success = set_power("on", ip, port)
+            command = '{"id":1,"method":"set_power", "params":["on", "smooth", 500]}'
+            success = sendto(ip, port, command)
+            LOGGER.debug('Power set is' + success[0])
+            
+            report = {"location": "bedroom"}
+            self.speak_dialog("on.activity", report)
         
 
 
@@ -72,21 +79,29 @@ class YeelightSkill(MycroftSkill):
         
         LOGGER.debug("Yeelight: starting off activity")
         LOGGER.debug("Yeelight: start activity" + message.data.get('utterance'))
+        
+        lights = get_lights()
+        if len(lights) >= 1:
+            LOGGER.info('Turning first light off')
+            response = lights[0]
+            (ip, port) = get_ip_port(response)
+            name = get_name(response)
+            model = get_model(response)
+            LOGGER.info('Name is ' + name + ' model ' + model)
 
-        (ip, port) = get_ip_port()
-
-        # success = set_power("off", ip, port)
-        command = '{"id":1,"method":"set_power", "params":["off", "smooth", 500]}'
-        success = sendto(ip, port, command)
-        LOGGER.debug('Power set is' + success[0])
-
-        report = {"location": "bedroom"}
-        self.speak_dialog("off.activity", report)
+            
+            # success = set_power("off", ip, port)
+            command = '{"id":1,"method":"set_power", "params":["off", "smooth", 500]}'
+            success = sendto(ip, port, command)
+            LOGGER.debug('Power set is' + success[0])
+            
+            report = {"location": "bedroom"}
+            self.speak_dialog("off.activity", report)
 
 def create_skill():
     return YeelightSkill()
 
-def get_ip_port():
+def get_lights():
     global SRC_PORT
     
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -136,9 +151,32 @@ def get_ip_port():
             break
         
     sock_recv.close()
-    
-    # match on a line like "Location: yeelight://192.168.1.25:55443"
-    # to pull ip out of group(1), port out of group(2)
+    return lights
+
+def get_name(response):
+    # match on a line like "name: bedroom"
+    # to pull name out of group(1)
+    prog = re.compile("name: (.*)")
+    for line in response.splitlines():
+        result = prog.match(line)
+        if result != None:
+            name = result.group(1)
+            return name
+    return None
+
+def get_model(response):
+    # match on a line like "model: color"
+    # to pull modle out of group(1)
+    prog = re.compile("model: (.*)")
+    for line in response.splitlines():
+        result = prog.match(line)
+        if result != None:
+            model = result.group(1)
+            return model
+    return None
+
+def get_ip_port(response):
+    # get the name of a light
     prog = re.compile("Location: yeelight://(\d*\.\d*\.\d*\.\d*):(\d*).*")
     for line in response.splitlines():
         result = prog.match(line)
@@ -148,6 +186,8 @@ def get_ip_port():
             return (ip, int(port))
     return (None, None)
 
+
+    
 def sendto(ip, port, command):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
     sock.connect((ip, port))
