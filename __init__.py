@@ -29,8 +29,18 @@ This skill manipulates a Yeelight
 
 and accepts the commands
 
-  * on
-  * off
+  * [location] light on
+  * [location] light off
+
+if the location is given
+  if there is a light with name of that location, use it
+  else fail
+else
+  if there is only one light, use it
+  else
+    if Mycroft knows its own location and there is a light 
+        with that name, use it
+    else fail
 '''
 
 
@@ -43,7 +53,10 @@ class YeelightSkill(MycroftSkill):
     def initialize(self):
         pass
 
+
+    
     @intent_handler(IntentBuilder("OnIntent").\
+                    optionally("location").\
                     require("OnKeywords").build())
     def on_activity_intent(self, message):
         """Turn on Yeelight
@@ -52,26 +65,30 @@ class YeelightSkill(MycroftSkill):
         LOGGER.debug("Yeelight: starting on activity")
         LOGGER.debug("Yeelight: start activity" + message.data.get('utterance'))
 
-        lights = get_lights()
-        if len(lights) >= 1:
-            LOGGER.info('Turning first light on')
-            response = lights[0]
-            (ip, port) = get_ip_port(response)
-            name = get_name(response)
-            model = get_model(response)
-            LOGGER.info('Name is ' + name + ' model ' + model)
+        location = message.data.get("location")
+        LOGGER.info('Room is ' + location)
+
+        light = select_light(location)
+        if light != None:
+            ip = light.ip
+            port = light.port
             
             # success = set_power("on", ip, port)
             command = '{"id":1,"method":"set_power", "params":["on", "smooth", 500]}'
             success = sendto(ip, port, command)
             LOGGER.debug('Power set is' + success[0])
-            
-            report = {"location": "bedroom"}
+
+            if light.name == None:
+                report = {"location": "unknown"}
+            else:
+                report = {"location": light.name}
+                
             self.speak_dialog("on.activity", report)
         
 
 
     @intent_handler(IntentBuilder("OffIntent").\
+                    optionally("location").\
                     require("OffKeywords").build())
     def off_activity_intent(self, message):
         """Turn off Yeelight
@@ -79,28 +96,56 @@ class YeelightSkill(MycroftSkill):
         
         LOGGER.debug("Yeelight: starting off activity")
         LOGGER.debug("Yeelight: start activity" + message.data.get('utterance'))
-        
-        lights = get_lights()
-        if len(lights) >= 1:
-            LOGGER.info('Turning first light off')
-            response = lights[0]
-            (ip, port) = get_ip_port(response)
-            name = get_name(response)
-            model = get_model(response)
-            LOGGER.info('Name is ' + name + ' model ' + model)
 
-            
+        location = message.data.get("Location")
+
+        light = select_light(location)
+        if light != None:
+            ip = light.ip
+            port = light.port
             # success = set_power("off", ip, port)
             command = '{"id":1,"method":"set_power", "params":["off", "smooth", 500]}'
             success = sendto(ip, port, command)
             LOGGER.debug('Power set is' + success[0])
-            
-            report = {"location": "bedroom"}
+
+            if light.name == None:
+                report = {"location": "unknown"}
+            else:
+                report = {"location": light.name}
+                
             self.speak_dialog("off.activity", report)
 
+    def stop(self):
+        pass
+
+class Yeelight:
+    name = None
+    ip = None
+    port = None
+    
+    
 def create_skill():
     return YeelightSkill()
 
+def select_light(location):
+    lights = get_lights()
+    if len(lights) >= 1:
+        light = Yeelight()
+        LOGGER.info('Turning first light on')
+        response = lights[0]
+        (ip, port) = get_ip_port(response)
+        name = get_name(response)
+        model = get_model(response)
+
+        light.ip = ip
+        light.port = port
+        light.model = model
+        light.name = name
+        
+        LOGGER.info('Name is ' + name + ', model ' + model)
+        return light
+    return None
+    
 def get_lights():
     global SRC_PORT
     
