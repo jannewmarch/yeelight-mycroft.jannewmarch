@@ -15,8 +15,8 @@ Yeelight make a white light and a colour bulb. This can be controlled through tw
 Jan Newmarch (jan@newmarch.name)
 ## Usage
 If a location is given, the light at that location will be used. If there is no light there, the intent will fail.
-If no location is given, and there is only one light, then it will be used.
-If no location is given and Mycroft has a location, then a light at that location will be used if possible. If not, the intent will fail.
+If no location is given, and there are one or more lights, then 
+the first one detected will be used.
 
 
 ## Category
