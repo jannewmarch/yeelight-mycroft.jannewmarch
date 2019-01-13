@@ -18,10 +18,12 @@ If a location is given, the light at that location will be used. If there is no 
 If no location is given, and there are one or more lights, then 
 the first one detected will be used.
 
+Warning: Discovery of lights is unreliable. Reported as a bug to Yeelight, no response received. So
+sometimes this skill will fail due to bugs in Yeelight networking.
+
 
 ## Category
-**IoT**
-WARNING: You have no Categories selected. Please ensure your Skill is assigned to at least one Category.
+IoT
 
 ## Tags
 #lighting
