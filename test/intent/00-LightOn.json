@@ -1,4 +1,4 @@
 {
-  "utterance": "light on",
+  "utterance": "turn bedroom light on",
   "expected_response": "Turning on bedroom"
 }
